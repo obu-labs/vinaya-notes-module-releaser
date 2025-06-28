@@ -16,6 +16,7 @@ runs:
   steps:
     - id: archive
       name: Setup the archive
+      shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
