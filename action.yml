@@ -32,13 +32,15 @@ runs:
         # Handle first version (no previous tag)
         if [ -z "$latest_tag" ]; then
             next_version="1.0.0"
+            cd $GITHUB_WORKSPACE
         else
             # Download the previous release
             mkdir ../previousrelease
             gh release download "$latest_tag" --dir ../previousrelease
             cd ../previousrelease
             [ $(ls -1 *.zip 2>/dev/null | wc -l) -eq 1 ] || { echo "Error: Directory must contain exactly one .zip file" >&2; exit 1; }
-            unzip *.zip -d previous
+            unzip *.zip -d ../previous
+            cd ..
 
             # Extract and validate version components
             version_part="${latest_tag#v}"
@@ -55,6 +57,7 @@ runs:
             
             # Generate file lists (non-hidden files only)
             (cd previous && find . -type f ! -path '*/.*' ! -name '.*' | sort) > "$prev_list"
+            cd $GITHUB_WORKSPACE
             (cd "${{ inputs.path }}" && find . -type f ! -path '*/.*' ! -name '.*' | sort) > "$latest_list"
 
             # Check for files removed from latest
