@@ -1,0 +1,119 @@
+name: 'The Vinaya Notes Module (VNM) Release Action'
+description: 'Creates a .vnm file and a .zip of your module and publishes it as a new GitHub Release.'
+inputs:
+  path:  # id of input
+    description: 'Path to the module folder'
+    required: true
+    default: 'latest'
+  metadata_file:
+    description: 'Path to the metadata yaml file. Defaults to $path/metadata.yaml'
+outputs:
+  version:
+    description: "The released version (without the v)."
+    value: ${{ steps.archive.outputs.version }}
+runs:
+  using: "composite"
+  steps:
+    - id: archive
+      name: Setup the archive
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        cd "${{ inputs.path }}"
+        if latest_tag=$(gh release view --json tagName -q .tagName 2>/dev/null); then
+          echo "Got release"
+        else
+          echo "No release found"
+          tag=""
+        fi
+        echo "Latest release was: ${latest_tag:-"(none)"}"
+        
+        # Handle first version (no previous tag)
+        if [ -z "$latest_tag" ]; then
+            next_version="1.0.0"
+        else
+            # Download the previous release
+            mkdir ../previousrelease
+            gh release download "$latest_tag" --dir ../previousrelease
+            cd ../previousrelease
+            [ $(ls -1 *.zip 2>/dev/null | wc -l) -eq 1 ] || { echo "Error: Directory must contain exactly one .zip file" >&2; exit 1; }
+            unzip *.zip -d previous
+
+            # Extract and validate version components
+            version_part="${latest_tag#v}"
+            IFS='.' read -r major minor patch <<< "$version_part"
+            
+            if ! [[ "$major" =~ ^[0-9]+$ ]] || ! [[ "$minor" =~ ^[0-9]+$ ]] || ! [[ "$patch" =~ ^[0-9]+$ ]]; then
+                echo "Error: Invalid version format in latest_tag: $latest_tag" >&2
+                exit 1
+            fi
+
+            # Create temporary files for directory listings
+            prev_list=$(mktemp)
+            latest_list=$(mktemp)
+            
+            # Generate file lists (non-hidden files only)
+            (cd previous && find . -type f ! -path '*/.*' ! -name '.*' | sort) > "$prev_list"
+            (cd "${{ inputs.path }}" && find . -type f ! -path '*/.*' ! -name '.*' | sort) > "$latest_list"
+
+            # Check for files removed from latest
+            if comm -23 "$prev_list" "$latest_list" | grep -q .; then
+                echo "INFO: Found file(s) removed in the latest. Bumping the major version number."
+                # Major bump: file(s) removed
+                major=$((major + 1))
+                minor=0
+                patch=0
+            # Check for new files in latest
+            elif comm -13 "$prev_list" "$latest_list" | grep -q .; then
+                echo "INFO: Found file(s) added to the latest. Bumping the minor version number."
+                # Minor bump: new file(s) added
+                minor=$((minor + 1))
+                patch=0
+            else
+                # Patch bump: only modifications
+                patch=$((patch + 1))
+            fi
+
+            # Cleanup temp files
+            rm -f "$prev_list" "$latest_list"
+            
+            next_version="$major.$minor.$patch"
+        fi
+
+        echo "Next version: $next_version"
+        echo "version=$next_version" >> $GITHUB_OUTPUT
+        # Package up the release
+        cd ${{ inputs.path }}
+        zip -r $GITHUB_WORKSPACE/content.zip *
+    - name: Write VNM File
+      shell: python
+      run: |
+        import yaml, json, os
+        version = "${{ steps.archive.outputs.version }}"
+        assert len(version) >= 5, f"Got short version \"{version}\""
+        metadata_path = "${{ inputs.metadata_path }}"
+        if not metadata_path:
+          metadata_path = "${{ inputs.path }}/metadata.yaml"
+        metadata = yaml.safe_load(open(metadata_path, 'r'))
+        vnm_data = {
+          "folder": metadata["folder"],
+          "description": metadata.get("description"),
+          "more_info": "https://github.com/${{ github.repository }}",
+          "version": version,
+          "requires": {}, # TODO
+          "zip": f"https://github.com/${{ github.repository }}/releases/download/v{version}/content.zip"
+        }
+        json.dump(vnm_data, open("./manifest.vnm", "w"), indent=2)
+    - name: Create Release
+      id: release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ steps.archive.outputs.version }}
+        body: |
+          Release ${{ steps.archive.outputs.version }}
+        draft: false
+        prerelease: false
+        files: |
+          content.zip
+          manifest.vnm
+
