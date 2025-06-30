@@ -39,7 +39,7 @@ runs:
             gh release download "$latest_tag" --dir ../previousrelease
             cd ../previousrelease
             [ $(ls -1 *.zip 2>/dev/null | wc -l) -eq 1 ] || { echo "Error: Directory must contain exactly one .zip file" >&2; exit 1; }
-            unzip --quiet *.zip -d ../previous
+            unzip -q *.zip -d ../previous
             cd ..
 
             # Extract and validate version components
