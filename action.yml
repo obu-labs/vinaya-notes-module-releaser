@@ -89,6 +89,7 @@ runs:
         # Package up the release
         cd "${{ inputs.path }}"
         zip -r $GITHUB_WORKSPACE/content.zip . -x \*.yaml -x '.*' -x '*/.*'
+        pip install pyyaml
     - name: Write VNM File
       shell: python
       run: |
