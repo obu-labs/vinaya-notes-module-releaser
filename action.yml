@@ -87,7 +87,7 @@ runs:
         echo "Next version: $next_version"
         echo "version=$next_version" >> $GITHUB_OUTPUT
         # Package up the release
-        cd ${{ inputs.path }}
+        cd "${{ inputs.path }}"
         zip -r $GITHUB_WORKSPACE/content.zip . -x \*.yaml -x '.*' -x '*/.*'
     - name: Write VNM File
       shell: python
