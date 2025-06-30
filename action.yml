@@ -96,7 +96,7 @@ runs:
         import yaml, json, os
         version = "${{ steps.archive.outputs.version }}"
         assert len(version) >= 5, f"Got short version \"{version}\""
-        metadata_path = "${{ inputs.metadata_path }}"
+        metadata_path = "${{ inputs.metadata_file }}"
         if not metadata_path:
           metadata_path = "${{ inputs.path }}/metadata.yaml"
         metadata = yaml.safe_load(open(metadata_path, 'r'))
