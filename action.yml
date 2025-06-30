@@ -39,7 +39,7 @@ runs:
             gh release download "$latest_tag" --dir ../previousrelease
             cd ../previousrelease
             [ $(ls -1 *.zip 2>/dev/null | wc -l) -eq 1 ] || { echo "Error: Directory must contain exactly one .zip file" >&2; exit 1; }
-            unzip *.zip -d ../previous
+            unzip --quiet *.zip -d ../previous
             cd ..
 
             # Extract and validate version components
@@ -88,7 +88,7 @@ runs:
         echo "version=$next_version" >> $GITHUB_OUTPUT
         # Package up the release
         cd "${{ inputs.path }}"
-        zip -r $GITHUB_WORKSPACE/content.zip . -x \*.yaml -x '.*' -x '*/.*'
+        zip --quiet -r $GITHUB_WORKSPACE/content.zip . -x \*.yaml -x '.*' -x '*/.*'
         pip install pyyaml
     - name: Write VNM File
       shell: python
