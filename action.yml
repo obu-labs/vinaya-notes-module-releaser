@@ -61,14 +61,14 @@ runs:
             (cd "${{ inputs.path }}" && find . -type f ! -path '*/.*' ! -name '.*' | sort) > "$latest_list"
 
             # Check for files removed from latest
-            if comm -23 "$prev_list" "$latest_list" | grep -q .; then
+            if read -r _ < <(comm -23 "$prev_list" "$latest_list"); then
                 echo "INFO: Found file(s) removed in the latest. Bumping the major version number."
                 # Major bump: file(s) removed
                 major=$((major + 1))
                 minor=0
                 patch=0
             # Check for new files in latest
-            elif comm -13 "$prev_list" "$latest_list" | grep -q .; then
+            elif read -r _ < <(comm -13 "$prev_list" "$latest_list"); then
                 echo "INFO: Found file(s) added to the latest. Bumping the minor version number."
                 # Minor bump: new file(s) added
                 minor=$((minor + 1))
