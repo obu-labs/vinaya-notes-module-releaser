@@ -150,7 +150,8 @@ def main():
       print(f"  {md_file}: {link}", file=sys.stderr)
     sys.exit(1)
   
-  req_trie = build_path_trie(sibling_links, Path(args.directory).parent)
+  absparent = Path(args.directory).resolve().parent
+  req_trie = build_path_trie(sibling_links, absparent)
   
   # Write sibling links to JSON file
   try:
