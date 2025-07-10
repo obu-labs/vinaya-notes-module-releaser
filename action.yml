@@ -94,7 +94,10 @@ runs:
         # Package up the release
         cd "${{ inputs.path }}"
         zip --quiet -r "$GITHUB_WORKSPACE/content.zip" . -x \*.yaml -x '.*' -x '*/.*'
-        pip install pyyaml
+    - name: Install Python Requirements
+      run: pip install pyyaml
+    - name: Calculate Linked Folders
+      run: python ${{ github.action_path }}/calculate_requirements.py "${{ inputs.path }}" "$MY_WORKING_DIR/requires.json"
     - name: Write VNM File
       shell: python
       run: |
@@ -105,12 +108,14 @@ runs:
         if not metadata_path:
           metadata_path = "${{ inputs.path }}/metadata.yaml"
         metadata = yaml.safe_load(open(metadata_path, 'r'))
+        requires_path = os.environ["MY_WORKING_DIR"] + "/requires.json"
+        requires = json.load(open(requires_path, 'r'))
         vnm_data = {
           "folder": metadata["folder"],
           "description": metadata.get("description"),
           "more_info": "https://github.com/${{ github.repository }}",
           "version": version,
-          "requires": {}, # TODO
+          "requires": requires,
           "zip": f"https://github.com/${{ github.repository }}/releases/download/v{version}/content.zip"
         }
         json.dump(vnm_data, open("./manifest.vnm", "w"), indent=2)
