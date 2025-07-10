@@ -11,20 +11,19 @@ outputs:
   version:
     description: "The released version (without the v)."
     value: ${{ steps.archive.outputs.version }}
-defaults:
-  run:
-    shell: bash
 runs:
   using: "composite"
   steps:
     - id: setup
       name: Setup the Environment
+      shell: bash
       run: |
         echo "MY_WORKING_DIR=${{ runner.temp }}" >> $GITHUB_ENV
     - id: archive
       name: Setup the archive
       env:
         GH_TOKEN: ${{ github.token }}
+      shell: bash
       run: |
         cd "${{ inputs.path }}"
         if latest_tag=$(gh release view --json tagName -q .tagName 2>/dev/null); then
@@ -96,8 +95,10 @@ runs:
         cd "${{ inputs.path }}"
         zip --quiet -r "$GITHUB_WORKSPACE/content.zip" . -x \*.yaml -x '.*' -x '*/.*'
     - name: Install Python Requirements
+      shell: bash
       run: pip install pyyaml
     - name: Calculate Linked Folders
+      shell: bash
       run: python ${{ github.action_path }}/calculate_requirements.py "${{ inputs.path }}" "$MY_WORKING_DIR/requires.json"
     - name: Write VNM File
       shell: python
