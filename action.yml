@@ -11,17 +11,18 @@ outputs:
   version:
     description: "The released version (without the v)."
     value: ${{ steps.archive.outputs.version }}
+defaults:
+  run:
+    shell: bash
 runs:
   using: "composite"
   steps:
     - id: setup
       name: Setup the Environment
-      shell: bash
       run: |
         echo "MY_WORKING_DIR=${{ runner.temp }}" >> $GITHUB_ENV
     - id: archive
       name: Setup the archive
-      shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
