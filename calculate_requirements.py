@@ -146,23 +146,3 @@ def calculate_requirements(directory: str | Path) -> Dict[str, Dict]:
   req_trie = build_path_trie(sibling_links, absparent)
 
   return req_trie
-
-
-if __name__ == "__main__":
-  parser = argparse.ArgumentParser(
-    description="Crawl markdown files for relative links and categorize them"
-  )
-  parser.add_argument("directory", help="Directory to crawl for markdown files")
-  parser.add_argument("filename", help="Output filename for JSON list of sibling links")
-  args = parser.parse_args()
-  
-  req_trie = calculate_requirements(args.directory)
-  
-  # Write sibling links to JSON file
-  try:
-    with open(args.filename, 'w', encoding='utf-8') as f:
-      json.dump(req_trie, f, indent=2, sort_keys=True)
-    print(f"Found sibling links pointing to {len(req_trie)} unique module(s).")
-  except Exception as e:
-    print(f"Error writing to {args.filename}: {e}", file=sys.stderr)
-    sys.exit(1)

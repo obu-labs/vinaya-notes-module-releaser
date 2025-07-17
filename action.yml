@@ -28,9 +28,6 @@ runs:
     - name: Install Python Requirements
       shell: bash
       run: pip install pyyaml
-    - name: Calculate Linked Folders
-      shell: bash
-      run: python ${{ github.action_path }}/calculate_requirements.py "${{ inputs.path }}" "$MY_WORKING_DIR/requires.json"
     - name: Write VNM File
       shell: bash
       run: python write_vnm.py "${{ inputs.path }}" --metadata="${{ inputs.metadata_file }}" --repo="${{ github.repository }}" --version="${{ steps.archive.outputs.version }}"

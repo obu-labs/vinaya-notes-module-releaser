@@ -2,6 +2,8 @@
 import argparse
 import yaml, json, os
 
+from calculate_requirements import calculate_requirements
+
 parser = argparse.ArgumentParser(
   description="Creates the ./manifest.vnm file.",
 )
@@ -19,13 +21,13 @@ parser.add_argument(
 parser.add_argument("--version", help="The released version (without the v).")
 args = parser.parse_args()
 
+requires = calculate_requirements(args.path)
+
 assert len(args.version) >= 5, f"Got short version \"{args.version}\""
 metadata_path = args.metadata
 if not metadata_path:
   metadata_path = args.path + "/metadata.yaml"
 metadata = yaml.safe_load(open(metadata_path, 'r'))
-requires_path = os.environ["MY_WORKING_DIR"] + "/requires.json"
-requires = json.load(open(requires_path, 'r'))
 vnm_data = {
   "folder": metadata["folder"],
   "description": metadata.get("description"),
