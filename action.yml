@@ -35,10 +35,10 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
       shell: bash
-      run: bash ${{ action.path }}/archive.bash "${{ inputs.path }}"
+      run: bash ${{ github.action_path }}/archive.bash "${{ inputs.path }}"
     - name: Write VNM File
       shell: bash
-      run: python ${{ action.path }}/write_vnm.py "${{ inputs.path }}" --metadata="${{ inputs.metadata_file }}" --repo="${{ github.repository }}" --version="${{ steps.archive.outputs.version }}"
+      run: python ${{ github.action_path }}/write_vnm.py "${{ inputs.path }}" --metadata="${{ inputs.metadata_file }}" --repo="${{ github.repository }}" --version="${{ steps.archive.outputs.version }}"
     - name: Create Release
       id: release
       uses: softprops/action-gh-release@v2
