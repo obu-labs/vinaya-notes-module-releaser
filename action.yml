@@ -101,26 +101,8 @@ runs:
       shell: bash
       run: python ${{ github.action_path }}/calculate_requirements.py "${{ inputs.path }}" "$MY_WORKING_DIR/requires.json"
     - name: Write VNM File
-      shell: python
-      run: |
-        import yaml, json, os
-        version = "${{ steps.archive.outputs.version }}"
-        assert len(version) >= 5, f"Got short version \"{version}\""
-        metadata_path = "${{ inputs.metadata_file }}"
-        if not metadata_path:
-          metadata_path = "${{ inputs.path }}/metadata.yaml"
-        metadata = yaml.safe_load(open(metadata_path, 'r'))
-        requires_path = os.environ["MY_WORKING_DIR"] + "/requires.json"
-        requires = json.load(open(requires_path, 'r'))
-        vnm_data = {
-          "folder": metadata["folder"],
-          "description": metadata.get("description"),
-          "more_info": "https://github.com/${{ github.repository }}",
-          "version": version,
-          "requires": requires,
-          "zip": f"https://github.com/${{ github.repository }}/releases/download/v{version}/content.zip"
-        }
-        json.dump(vnm_data, open("./manifest.vnm", "w"), indent=2)
+      shell: bash
+      run: python write_vnm.py "${{ inputs.path }}" --metadata="${{ inputs.metadata_file }}" --repo="${{ github.repository }}" --version="${{ steps.archive.outputs.version }}"
     - name: Create Release
       id: release
       uses: softprops/action-gh-release@v2
