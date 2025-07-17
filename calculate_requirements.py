@@ -126,22 +126,14 @@ def build_path_trie(paths: Set[Path], root_dir: Path) -> Dict[str, Dict]:
   return trie
 
 
-def main():
-  parser = argparse.ArgumentParser(
-    description="Crawl markdown files for relative links and categorize them"
-  )
-  parser.add_argument("directory", help="Directory to crawl for markdown files")
-  parser.add_argument("filename", help="Output filename for JSON list of sibling links")
-  
-  args = parser.parse_args()
-  
+def calculate_requirements(directory: str | Path) -> Dict[str, Dict]:
   # Validate directory exists
-  if not os.path.isdir(args.directory):
-    print(f"Error: Directory '{args.directory}' does not exist", file=sys.stderr)
+  if not os.path.isdir(str(directory)):
+    print(f"Error: Directory '{str(directory)}' does not exist", file=sys.stderr)
     sys.exit(1)
   
   # Crawl the directory
-  sibling_links, error_links = crawl_markdown_directory(args.directory)
+  sibling_links, error_links = crawl_markdown_directory(directory)
   
   # Handle errors
   if error_links:
@@ -150,18 +142,27 @@ def main():
       print(f"  {md_file}: {link}", file=sys.stderr)
     sys.exit(1)
   
-  absparent = Path(args.directory).resolve().parent
+  absparent = Path(directory).resolve().parent
   req_trie = build_path_trie(sibling_links, absparent)
+
+  return req_trie
+
+
+if __name__ == "__main__":
+  parser = argparse.ArgumentParser(
+    description="Crawl markdown files for relative links and categorize them"
+  )
+  parser.add_argument("directory", help="Directory to crawl for markdown files")
+  parser.add_argument("filename", help="Output filename for JSON list of sibling links")
+  args = parser.parse_args()
+  
+  req_trie = calculate_requirements(args.directory)
   
   # Write sibling links to JSON file
   try:
     with open(args.filename, 'w', encoding='utf-8') as f:
       json.dump(req_trie, f, indent=2, sort_keys=True)
-    print(f"Found {len(sibling_links)} sibling links pointing to {len(req_trie)} unique module(s).")
+    print(f"Found sibling links pointing to {len(req_trie)} unique module(s).")
   except Exception as e:
     print(f"Error writing to {args.filename}: {e}", file=sys.stderr)
     sys.exit(1)
-
-
-if __name__ == "__main__":
-  main()
