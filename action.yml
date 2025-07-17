@@ -6,10 +6,20 @@ inputs:
     required: true
     default: 'latest'
   metadata_file:
-    description: 'Path to the metadata yaml file. Defaults to $path/metadata.yaml'
+    description: |
+      Path to the metadata yaml file. Defaults to $path/metadata.yaml
+      The metadata yaml file must be a dictionaries containing:
+        - folder: The name of the module (the folder will get this name in the Vinaya Notebook)
+        - description: A short description of the module
+      The metadata yaml file may also include:
+        - more_info: A link to this module's homepage (it will default to your GitHub repo if not provided)
+        - submodules: A list of dictionaries containing:
+          - name: The submodule name
+          - paths: A list of folders relative to the module root (without leading or trailing slashes)
+    required: false
 outputs:
   version:
-    description: "The released version (without the v)."
+    description: "The released version (without the v: the created release has tag_name with the v)."
     value: ${{ steps.archive.outputs.version }}
 runs:
   using: "composite"

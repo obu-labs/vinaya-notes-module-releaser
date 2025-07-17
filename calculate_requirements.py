@@ -2,12 +2,11 @@
 
 import os
 import re
-import json
-import argparse
 import sys
 from pathlib import Path
 import urllib.parse
 from typing import Dict, Set, List, Tuple
+from collections import defaultdict
 
 
 def find_markdown_links(content: str) -> List[str]:
@@ -51,7 +50,7 @@ def get_relationship(target_dir: Path, linked_file: Path) -> str:
     return "external"
 
 
-def crawl_markdown_directory(directory: str) -> Tuple[Set[str], List[Tuple[str, str]]]:
+def crawl_markdown_directory(directory: str, submodules: List[Dict] | None = None) -> Tuple[Dict[str, Set[str]], List[Tuple[str, str]]]:
   """
   Crawl markdown files in directory and categorize links.
   
@@ -60,14 +59,25 @@ def crawl_markdown_directory(directory: str) -> Tuple[Set[str], List[Tuple[str, 
     - List of (markdown_file, external_link) tuples for errors
   """
   target_dir = Path(directory).resolve()
-  sibling_links = set()
+  sibling_links = defaultdict(set)
   error_links = []
+  submodule_directories = {}
+  submodules = submodules or []
+  for submodule in submodules:
+    for folder in submodule['paths']:
+      submodule_directories[folder] = submodule['name']
   
   # Find all markdown files recursively
   for md_file in target_dir.rglob("*.md"):
     try:
       with open(md_file, 'rt', encoding='utf-8') as f:
         content = f.read()
+      
+      submodule = "root"
+      for folder in submodule_directories:
+        if str(md_file.relative_to(target_dir)).startswith(folder+"/"):
+          submodule = submodule_directories[folder]
+          break
       
       links = find_markdown_links(content)
       
@@ -84,7 +94,7 @@ def crawl_markdown_directory(directory: str) -> Tuple[Set[str], List[Tuple[str, 
             continue
           elif relationship == "sibling":
             # Add to sibling links set
-            sibling_links.add(linked_file)
+            sibling_links[submodule].add(linked_file)
           elif relationship == "external":
             # Add to error list
             error_links.append((str(md_file), link))
@@ -126,14 +136,21 @@ def build_path_trie(paths: Set[Path], root_dir: Path) -> Dict[str, Dict]:
   return trie
 
 
-def calculate_requirements(directory: str | Path) -> Dict[str, Dict]:
+def calculate_requirements(directory: str | Path, submodules: List[Dict] | None = None) -> Dict[str, Dict[str, Dict]]:
+  """
+  Calculate this module and its submodules' requirements.
+
+  Returns:
+    A dictionary mapping submodule names (or "root") to their requirements
+    Requirements are themselves dictionaries of module names to referenced subfolders.
+  """
   # Validate directory exists
   if not os.path.isdir(str(directory)):
     print(f"Error: Directory '{str(directory)}' does not exist", file=sys.stderr)
     sys.exit(1)
   
   # Crawl the directory
-  sibling_links, error_links = crawl_markdown_directory(directory)
+  sibling_links, error_links = crawl_markdown_directory(directory, submodules)
   
   # Handle errors
   if error_links:
@@ -143,6 +160,8 @@ def calculate_requirements(directory: str | Path) -> Dict[str, Dict]:
     sys.exit(1)
   
   absparent = Path(directory).resolve().parent
-  req_trie = build_path_trie(sibling_links, absparent)
-
+  req_trie = {}
+  for submodule in submodules or []:
+    req_trie[submodule['name']] = build_path_trie(sibling_links[submodule['name']], absparent)
+  req_trie['root'] = build_path_trie(sibling_links['root'], absparent)
   return req_trie
